@@ -13,3 +13,6 @@ Mar 22nd
 - first steps today:
 	- verify 77 Hz can be seen, if can be seen, is it constant? 
 	- measure two sensors back-to-back (physically touching), as master-slave configuration, any different in the 77 Hz? Other frequencies?
+
+Answer to first steps:
+	- yes 77 Hz can be seen.
