@@ -16,3 +16,10 @@ Mar 22nd
 
 Answer to first steps:
 	- yes 77 Hz can be seen.
+	- to check how constant it is, do the following: first measure some number of segments, say 10, each 20 seconds long. Iterate 	  	  through each, perform periodogram, add up frequencies bins from 76.5 to 77.5 Hz. Compare this value across the 10 trials
+		- from periodogram perspective seems to be somewhat centralized, but how much of this is due to numerical error?
+	- from time domain point of view, can the 77 Hz be seen after bandpass filter? yes, but it appears that the modulation frequency 
+	  also has an amplitude modulation. get another histogram by taking successive amplitudes using find peak. how does the histogram
+	  compare? 
+- try to operate 2 qzfm at same time
+

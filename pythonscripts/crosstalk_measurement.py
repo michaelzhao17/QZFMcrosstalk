@@ -16,6 +16,8 @@ import pandas as pd
 from labjackmeasure import labjack_measure
 import pathlib
 from scipy import signal
+from scipy import fft
+
 
 def make_folder(fp, folder_name):
     '''
@@ -39,10 +41,7 @@ def make_folder(fp, folder_name):
     pathlib.Path(fp+folder_name).mkdir(parents=True, exist_ok=True) 
     return folder_name
 
-def find_nearest_idx(array, value):
-    array = np.asarray(array)
-    idx = (np.abs(array - value)).argmin()
-    return idx
+
 #%%
 q = QZFM("COM3")
 #%%
@@ -63,8 +62,8 @@ fp = '..//data//mar22//'
 folder_name = '77HzConstancy'
 folder_name = make_folder(fp, folder_name)
 
-
-for i in range(5):
+n_measurement = 100
+for i in range(n_measurement):
     print('performing measurement no.{} out of {}'.format(i+1, 5))
     # zero
     for i in range(zero_time):
@@ -91,22 +90,4 @@ for axis in range(3):
 plt.legend()
 plt.grid()
 plt.show()
-
-#%%
-x_77 = []
-y_77 = []
-z_77 = []
-for file in glob.glob('..//data//mar22//77HzConstancy//*.csv'):
-    df = pd.read_csv(file)
-    Bx = df['x']
-    By = df['y']
-    Bz = df['z']
-    # calculate periodogram
-    fx, px = signal.periodogram(Bx, sr)
-    fy, py = signal.periodogram(By, sr)
-    fz, pz = signal.periodogram(Bz, sr)
-    
-    # find index of 76.5 and 77.5 Hz
-    idx_start = 
-    idx_end = 
 
