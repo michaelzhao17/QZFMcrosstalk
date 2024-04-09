@@ -23,3 +23,156 @@ Answer to first steps:
 	  compare? 
 - try to operate 2 qzfm at same time
 
+Mar 25th
+- the amplitude of the modulation frequency seems to vary either over time or space - so not really suitable as a metric
+- instead new idea is to consider the effects on sensing axis by overlapping modulation frequency.
+- have a coil outputting some sinosoidal signal, first measure sensor 1 (AAL9) by itself. Then turn on sensor 2 (AAY4) as slave of sensor 1. Measure again, did amplitude change?
+seems like so, and statistically significantly too. To confirm, do the following: measure single, duo, turn second sensor off, measure single again. 
+
+confusing results. Need to check how stable the amplitude is without any disturbance. Record 20 5 second segmenets. and compare
+-> amplitude does seem to be bi-modal. Noise?
+
+Mar 26th
+two qspin taped together
+measure:
+- AAL9 alone, w/o connecting master mod out
+- AAL9 alone, w/ connecting master mod out
+- AAY4 powered on but not started
+- AAY4 powered on and started
+- AAL9 alone, w/o connecting master mod out
+results seems to suggest a shift in measured amplitude
+
+next repeat the same experiment, but with second QZFM placed well away from the first.
+
+seems to be the case that if mod out is connected but the second sensor module is off, then the amplitude measured has linear decrease
+behavior.
+
+put quspins together again. If this time large shifts are noticed again, will commit to making solidworks models
+
+Mar 27th
+idea for a metric: number of std away from original mean. 
+folder/file structure:
+sensitive_axis_change//axis//distance//trial?
+scipy kstest
+
+Apr. 2nd
+Make plot comparing numbers of standard deviations away.
+Is there any crosstalk introduced by the electronic module itself?
+
+Apr. 3rd
+noticed that after each zeroing, the qzfm needs about 40 seconds to go to full performance?
+how much dependence is there on the shift, depending on the amplitude of excitation signal? 
+
+Apr 4th
+modify script to check slope, if > some threshold, reject (done)
+seems sensitivity is unstable for the first few 10s of seconds after zeroing. Need to redesign procedure such that only one zeroing is done at the start and subsequent runs do not involve rezeroing. (done)
+add bibliography to report, rewrite 'sources of crosstalk' section with proper citations.
+
+Apr 8th
+second experiment: use SM fluxgate to probe the amplitude as a function of distance. Especially interesting if the 'bump' will also be seen or not. 
+
+Apr 9th
+- inlay plot making
+- demonstrate possibility of multi-sensor operation 
+- figure out gain setting 
+	- same setting on AWG, measure once with standard gain, then once with 0.1x. raw voltage should be 10x smaller:
+
+    def read_offsets_custom(self, npts, queue=None, clear_buffer=True ):
+        """Read offset data from the device in field zeroing mode
+
+        time[0] is the time immediately after clearing the buffer.
+        reads at approx 7.5 Hz
+
+        Args:
+            npts (int): number of data points to read
+            clear_buffer (bool): if true, clear initial buffer and wait for new
+
+        Returns:
+            pd.DataFrame: field zeroing data and timestamps
+        """
+
+        # change to status readback
+        if self.is_data_streaming:
+            self._set_data_stream(False)
+
+        # storage for messages and data
+        stream = ''
+        data = {'x':np.zeros(npts*2),
+                'y':np.zeros(npts*2),
+                'z':np.zeros(npts*2)}
+        nx = 0
+        ny = 0
+        nz = 0
+
+        # initialize progress bar
+        progress = tqdm(leave=False, total=npts, desc='Measuring')
+
+        # clear buffer
+        if clear_buffer:
+            self.ser.reset_input_buffer()
+
+        # take data
+        time_start = time()
+        start = datetime.now()
+
+        while nx < npts and ny < npts and nz < npts:
+
+            nx_start = nx
+
+            # read message
+            message = self.ser.read(self.nbytes_status)
+
+            # clean up message to data format
+            message = message.decode('utf-8')
+            message = message.replace('\x00', '')
+            message = message.replace('\r', '')
+
+            # append the old stream
+            message = stream+message
+
+            # split into lines
+            codes = message.split('\n')
+
+            if nx+ny+nz == 0:
+                codes = codes[1:]
+
+            # parse the message
+            for code in codes[:-1]:
+                if code[0] == '~':
+                    if code[3:].replace('.', '').replace('-', '').isnumeric():
+                        if code[1:3] == '07':
+                            data['z'][nz] = float(code[3:])-32768
+                            nz += 1
+                        elif code[1:3] == '08':
+                            data['y'][ny] = float(code[3:])-32768
+                            ny += 1
+                        elif code[1:3] == '09':
+                            data['x'][nx] = float(code[3:])-32768
+                            nx += 1
+
+            # save last point
+            stream = codes[-1]
+
+            # iterate progress bar
+            progress.update(nx-nx_start)
+
+        # check number of points
+        data['x'] = data['x'][:npts]
+        data['y'] = data['y'][:npts]
+        data['z'] = data['z'][:npts]
+
+        # interpolate times
+        end = datetime.now()
+        tt = (end - start).seconds + float((end - start).microseconds) / 1000000
+        times = tt*np.arange(npts)/npts + time_start
+
+        # save
+        self.data_fz = pd.DataFrame(data, index=times)
+        self.data_fz.index.name = 'Epoch Time'
+        self.data_fz.rename(columns={'x':'x', 'y':'y', 'z':'z'},
+                                    inplace=True)
+        queue.put(self.data_fz)
+        return self.data_fz
+
+
+
